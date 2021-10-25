@@ -1,7 +1,7 @@
 import processing.net.*;
 
 HashMap<String, Blob> blobs = new HashMap();
-HashMap<String, HashMap<Integer, Blob>> players = new HashMap();
+HashMap<String, Blob> players = new HashMap();
 
 int mapX = 4000;
 int mapY = 4000;
@@ -42,36 +42,27 @@ void handleClientInput(Client sendingClient) {
   if(request[0].equals("LOCAL_BLOB")) {
     //Un-pack the raw client data
     String name = rawClientData[0];
-    HashMap<Integer, Blob> client = players.get(name);
+    Blob client = players.get(name);
     
     if(client == null) client = createNewClient(name, sendingClient);
+    float x = client.position.x;
+    if(!rawClientData[1].equals("NaN")) x = float(rawClientData[1]);
+    float y = client.position.x;
+    if(!rawClientData[2].equals("NaN")) y = float(rawClientData[2]);
     
-    int i = 1;
-    for(HashMap.Entry<Integer, Blob> entry : client.entrySet()) {
-      Blob playerBlob = entry.getValue();
-      float x = playerBlob.position.x;
-      if(!rawClientData[i].equals("NaN")) x = float(rawClientData[1]);
-      float y = playerBlob.position.x;
-      if(!rawClientData[i+1].equals("NaN")) y = float(rawClientData[2]);
-      
-      PVector position = new PVector(x, y);
-      
-      playerBlob.position = position;
-      i += 3;
-    }
+    PVector position = new PVector(x, y);
+    
+    client.position = position;
   }
   
   sendingClient.clear();
 }
 
-HashMap<Integer,Blob> createNewClient(String name, Client c) {
-  println("debug 1");
+Blob createNewClient(String name, Client c) {
   Blob b = new Blob(new PVector(random(mapX), random(mapY)));
-  HashMap<Integer, Blob> _return = new HashMap();
-  _return.put(0, b);
-  players.put(name, _return);
+  players.put(name, b);
   blobs.put(name, b);
-  return _return;
+  return b;
 }
 
 void randomSmallBlob() {
@@ -108,10 +99,9 @@ void draw() {
   text(int(frameRate) + "fps", 0,0);
   
   try {
-  for(HashMap.Entry<String, Blob> entry : blobs.entrySet()) {
-    entry.getValue().show();
-    for(HashMap.Entry<String, HashMap<Integer, Blob>> player : players.entrySet()) {
-      for(HashMap.Entry<Integer, Blob> blob : player.getValue().entrySet()) {
+    for(HashMap.Entry<String, Blob> entry : blobs.entrySet()) {
+      entry.getValue().show();
+      for(HashMap.Entry<String, Blob> blob : players.entrySet()) {
         Blob focusedBlob = blob.getValue();
         if(focusedBlob.eats(entry.getValue())) {
           if(entry.getValue().mass <= 40) smallBlobs--;
@@ -120,12 +110,6 @@ void draw() {
         }
       }
     }
-  }
-  for(HashMap.Entry<String, HashMap<Integer, Blob>> player : players.entrySet()) {
-    for(HashMap.Entry<Integer, Blob> blob : player.getValue().entrySet()) {
-      blob.getValue().show();
-    }
-  }
   } catch(Exception exception) {
     exception.printStackTrace();
   }
@@ -137,15 +121,13 @@ void draw() {
 
 String getBlobData() {
   String message = "BLOB_DATA\n";
-  for (HashMap.Entry<String, HashMap<Integer, Blob>> entry : players.entrySet()) {
-    for(HashMap.Entry<Integer, Blob> blob : entry.getValue().entrySet()) {
-      Blob b = blob.getValue();
-      message += entry.getKey() + " " + blob.getKey() + " " + b.position.x + " " + b.position.y + " " + b.mass + "\n";
-    }
+  for (HashMap.Entry<String, Blob> entry : players.entrySet()) {
+    Blob b = entry.getValue();
+    message += entry.getKey() + " " + b.position.x + " " + b.position.y + " " + b.mass + "\n";
   }
   for (HashMap.Entry<String, Blob> entry : blobs.entrySet()) {
     Blob b = entry.getValue();
-    message += entry.getKey() + " -1 " + b.position.x + " " + b.position.y + " " + b.mass + "\n";
+    message += entry.getKey() + " " + b.position.x + " " + b.position.y + " " + b.mass + "\n";
   }
   return message;
 }
